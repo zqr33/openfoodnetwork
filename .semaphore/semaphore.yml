@@ -19,7 +19,7 @@ blocks:
       prologue:
         commands:
           - checkout
-          - sem-service start postgres 10
+          - sem-service start postgres 10 --username=ofn --password=f00d
           - sem-version ruby 2.3.7
           - cache restore
           - gem install bundler -v 1.17.3
