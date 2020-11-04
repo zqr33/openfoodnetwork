@@ -1,0 +1,41 @@
+version: v1.0
+name: Semaphore 2.0
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+blocks:
+  - name: Run
+    dependencies: []
+    task:
+      jobs:
+        - name: Rspec
+          commands:
+            - 'KNAPSACK_GENERATE_REPORT=true KNAPSACK_TEST_DIR=spec KNAPSACK_TEST_FILE_PATTERN="{spec,engines/**/spec}/**{,/*/**}/*_spec.rb" bundle exec rake ''knapsack:rspec[--tag ~performance --format progress -p]'''
+          parallelism: 4
+      env_vars:
+        - name: RAILS_ENV
+          value: test
+      prologue:
+        commands:
+          - checkout
+          - sem-service start postgres 10
+          - sem-version ruby 2.3.7
+          - cache restore
+          - gem install bundler -v 1.17.3
+          - bundle install --deployment --path vendor/bundle
+          - yarn install
+          - cache store
+          - cp config/application.yml.example config/application.yml
+          - 'bundle exec rake db:create db:schema:load'
+  - name: Karma
+    dependencies:
+      - Run
+    task:
+      jobs:
+        - name: Karma
+          commands:
+            - npm install -g npm@'3.8.8'
+            - npm install
+            - npm install -g karma-cli@0.1.2
+            - 'RAILS_ENV=test bundle exec rake karma:run'
